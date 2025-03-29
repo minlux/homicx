@@ -8,8 +8,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O0")
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 
-#find_library(RF24 rf24 REQUIRED)
-#message(STATUS "using RF24 library: ${RF24}")
+find_library(RF24 rf24 REQUIRED)
+message(STATUS "using RF24 library: ${RF24}")
 
 
 add_executable(homicx
@@ -26,6 +26,6 @@ target_include_directories(homicx PRIVATE
 )
 
 target_link_libraries(homicx PUBLIC
-#    ${RF24}
+   ${RF24}
 #    pthread
 )

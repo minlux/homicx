@@ -20,21 +20,22 @@ public:
 
     void set_response_data(unsigned int id, uint8_t data[16])
     {
-        if (--id <= 3)
+        if (--id <= 2) //TODO hier noch die ID 3??? (ich habe bisher nur ID 0x83 gesehen - vielleicht sollte ich diese statt der 0x03 nehmen !?)
         {
             memcpy(&bytes[16 * id], data, 16);
         }
     }
 
     // Function to parse the byte stream and populate JSON (0x0B RealTimeRunData_Debug)
-    // concatenation of the 3 responses (0x01, 0x02, 0x03)
-    // Die auskommentieren Attribute stammen aus 0x03, was im moment nicht verwendet wird!
+    // concatenation of the 3 responses (0x01, 0x02, 0x03/0x83???)
+    // Die auskommentieren Attribute stammen aus 0x03/0x83 ???, was im moment nicht verwendet wird!
     nlohmann::json json() 
     {
         nlohmann::json result;
 
         result["dc"] = nlohmann::json::array();
         result["dc"].push_back({
+            { "id",      "pv1"                                             },
             { "u",       (double)big_endian_into_uint16(&bytes[ 2]) / 10   }, //V
             { "i",       (double)big_endian_into_uint16(&bytes[ 4]) / 100  }, //A
             { "p",       (double)big_endian_into_uint16(&bytes[ 6]) / 10   }, //W
@@ -42,6 +43,7 @@ public:
             { "etoday",  (double)big_endian_into_uint16(&bytes[22]) / 1000 }  //kWh
         });
         result["dc"].push_back({
+            { "id",      "pv2"                                             },
             { "u",       (double)big_endian_into_uint16(&bytes[ 8]) / 10   }, //V
             { "i",       (double)big_endian_into_uint16(&bytes[10]) / 100  }, //A
             { "p",       (double)big_endian_into_uint16(&bytes[12]) / 10   }, //W

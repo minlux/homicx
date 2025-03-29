@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 
     // Run the server in a separate thread
     std::thread server_thread([&]() {
-        printf("Listen to %s:%u\n", listenIp.c_str(), listenPort);
+        if (verbose) printf("Listen to %s:%u\n", listenIp.c_str(), listenPort);
         svr.listen(listenIp, listenPort);
     });
 
@@ -359,10 +359,10 @@ int main(int argc, char *argv[])
         const uint32_t time1ms = get_time_1ms();
         if ((time1ms - ttx) >= poll1ms)
         {
-        #if 0 //todo - funktioniert das?
+        #if 0 //todo - does not work yet. maybe the request sent be "send_command()" isn't correct!?
             //if we got a response to systemConfigParam request 
             // and we see that the inverter has a different active power limit than requested
-            if ((powerLimit >= 0) && ((uint16_t)powerLimit != systemConfigParam.activePowerLimit))
+            if ((powerLimit >= 0) && ((uint16_t)powerLimit != config.active_power_limit()))
             {
                 send_command(dtuHmAddr, wrHmAddr, 11, (uint16_t)powerLimit); //set new power limit
                 info.reset(); //reset + the following increment brings us to info command 5 which is what i want to read back the active power limit
@@ -393,21 +393,24 @@ int main(int argc, char *argv[])
             if (info == DeviceResponse::INFO_CMD_ID)
             {
                 device.set_response_data(buffer[9], &buffer[10]);
-                std::cout << device.json().dump() << std::endl; // Pretty-printed with indentation of 4 spaces
+                std::cout << device.json().dump() << std::endl;
             }
             if (info == ConfigResponse::INFO_CMD_ID)
             {
                 config.set_response_data(buffer[9], &buffer[10]);
+                std::cout << config.json().dump() << std::endl;
             }
             if (info == StatusResponse::INFO_CMD_ID)
             {
                 status.set_response_data(buffer[9], &buffer[10]);
-                if (buffer[9] == 3)
+                if (buffer[9] == 2)
                 {
                     inverterStatus = status.json();
-                    inverterStatus['pwrlimit'] = (double)config.active_power_limit() / 10;
+                    inverterStatus["pwrlimit"] = (double)config.active_power_limit() / 10;
                     // inverterStatus['serialno'] = wrSerial;
-                    std::cout << inverterStatus.dump() << std::endl; // Pretty-printed with indentation of 4 spaces
+                    std::string s = inverterStatus.dump();
+                    std::cout << s << std::endl;
+                    eventDispatcher.send_event(std::move(s));
                 }
             }
         }

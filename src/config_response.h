@@ -4,6 +4,7 @@
 /* -- Includes ------------------------------------------------------------ */
 #include <stdint.h>
 #include <string.h>
+#include "response_helper.h"
 
 /* -- Defines ------------------------------------------------------------- */
 
@@ -26,6 +27,13 @@ public:
     inline uint16_t active_power_limit()
     {
         return (((uint16_t)bytes[2] << 8) | bytes[3]);
+    }
+
+    nlohmann::json json() 
+    {
+        nlohmann::json result;
+        result["pwrlimit"] = (double)big_endian_into_uint16(&bytes[2]) / 10;
+        return result;
     }
 };
 

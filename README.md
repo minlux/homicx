@@ -25,6 +25,8 @@ Example:
 build/homicx --serial 114182923675 --poll 2 --listen 8088 --serve html --verbose
 ```
 
+Now open webbrowser on `http://<your-raspberry>:8088` and you will find a *swagger UI* to operate the REST API.
+
 ## Build 
 
 ### Prerequisits
