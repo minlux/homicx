@@ -1,0 +1,78 @@
+openapi: 3.0.0
+info:
+  title: HOMICX API
+  version: 1.0.0
+tags:
+  - name: Status
+    description: API status endpoints
+  - name: Power
+    description: Power-related endpoints
+  - name: Subscribe
+    description: Subscription endpoints
+servers:
+  - url: /
+paths:
+  /app:
+    get:
+      summary: Get App information
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  brief:
+                    type: string
+                    description: More verbose name of the app
+                  version:
+                    type: string
+  /status:
+    get:
+      summary: Get API status
+      tags:
+        - Status
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vdc:
+                    type: number
+                  limit:
+                    type: number
+                  status:
+                    type: string
+  /power:
+    get:
+      summary: Get power data
+      tags:
+        - Power
+      parameters:
+        - name: limit
+          in: query
+          description: Limit the number of results
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+  /subscribe:
+    get:
+      summary: Subscribe to events
+      tags:
+        - Subscribe
+      responses:
+        '200':
+          description: Successful response
+          content:
+            text/event-stream:
+              schema:
+                type: string
