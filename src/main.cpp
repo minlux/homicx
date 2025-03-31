@@ -50,7 +50,8 @@ static EventDispatcher eventDispatcher;
 
 /* -- Function Prototypes ------------------------------------------------- */
 static bool request_info(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint8_t cmd);
-static bool send_command(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint8_t cmd, uint16_t data);
+static bool set_active_power_limit(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint16_t limit);
+static bool restart_inverter(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4]);
 static bool transmit(const uint8_t * data, size_t len);
 static void init_receiver();
 static void next_rx_channel();
@@ -359,17 +360,15 @@ int main(int argc, char *argv[])
         const uint32_t time1ms = get_time_1ms();
         if ((time1ms - ttx) >= poll1ms)
         {
-        #if 0 //todo - does not work yet. maybe the request sent be "send_command()" isn't correct!?
             //if we got a response to systemConfigParam request 
             // and we see that the inverter has a different active power limit than requested
             if ((powerLimit >= 0) && ((uint16_t)powerLimit != config.active_power_limit()))
             {
-                send_command(dtuHmAddr, wrHmAddr, 11, (uint16_t)powerLimit); //set new power limit
+                set_active_power_limit(dtuHmAddr, wrHmAddr, (uint16_t)powerLimit); //set new power limit
                 info.reset(); //reset + the following increment brings us to info command 5 which is what i want to read back the active power limit
                 request_info(dtuHmAddr, wrHmAddr, ++info); //read back activePowerLimit
             }
             else
-        #endif
             {
                 if (rxlen > 0) ++info; //request next information
                 request_info(dtuHmAddr, wrHmAddr, info);
@@ -471,20 +470,20 @@ bool request_info(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint8_t
 
 //Cmd (see ahoy DevControlCmdType)
 // ActivePowerContr        = 11, // 0x0b - in this case data is 0.1*percent of maximal power (1000 -> 100%)
-bool send_command(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint8_t cmd, uint16_t data)
+bool set_active_power_limit(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint16_t limit)
 {
     //setup template
     uint8_t req[] =
     {
-        0x81,
+        0x51,
         0x82, 0x92, 0x36, 0x75, //WR HM addr
         0x70, 0x53, 0x54, 0x53, //DTU HM addr
-        0x80,
-        0x0B,
+        0x81,
+        0x0B, // CMD = ActivePowerContr
         0x00,
         0x00, 0x00, //Power limit (0.1W), big endian
         0x00, //store persistent: 00=no, 01=yes
-        0x00, //00=absolute value, 01=relative value
+        0x01, //00=absolute value (0.1W), 01=relative value (0.1%)
         0x77, 0xDF, //MODBUS CRC (HI LO)
         0xDE //CRC8
     };
@@ -498,17 +497,52 @@ bool send_command(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4], uint8_t
     req[6] = dtuHmAddr[1];
     req[7] = dtuHmAddr[2];
     req[8] = dtuHmAddr[3];
-    //which type of information (vgl. ahoy DevControlCmdType)
-    req[10] = cmd;
     //data value
-    req[11] = (data >> 8) & 0xFF;
-    req[12] = (data >> 0) & 0xFF;
+    req[12] = (limit >> 8) & 0xFF;
+    req[13] = (limit >> 0) & 0xFF;
     //modbus CRC
     const uint16_t crc16 = crc_calc_crc16_reflected(0xFFFF, &req[10], 6);
     req[16] = (crc16 >> 8) & 0xFF;
     req[17] = (crc16 >> 0) & 0xFF;
     //crc8
     req[18] = crc_calc_crc8(0, &req[0], 18);
+    return transmit(req, sizeof(req));
+}
+
+
+//Not tested yet!!!
+//Cmd (see ahoy DevControlCmdType)
+// Restart                 = 2,  // 0x02
+bool restart_inverter(const uint8_t dtuHmAddr[4], const uint8_t wrHmAddr[4])
+{
+    //setup template
+    uint8_t req[] =
+    {
+        0x51,
+        0x82, 0x92, 0x36, 0x75, //WR HM addr
+        0x70, 0x53, 0x54, 0x53, //DTU HM addr
+        0x81,
+        0x02, // CMD = Restart
+        0x00,
+        0x77, 0xDF, //MODBUS CRC (HI LO)
+        0xDE //CRC8
+    };
+    //set WR HM addr
+    req[1] = wrHmAddr[0];
+    req[2] = wrHmAddr[1];
+    req[3] = wrHmAddr[2];
+    req[4] = wrHmAddr[3];
+    //set DTU HM addr
+    req[5] = dtuHmAddr[0];
+    req[6] = dtuHmAddr[1];
+    req[7] = dtuHmAddr[2];
+    req[8] = dtuHmAddr[3];
+    //modbus CRC
+    const uint16_t crc16 = crc_calc_crc16_reflected(0xFFFF, &req[10], 2);
+    req[12] = (crc16 >> 8) & 0xFF;
+    req[13] = (crc16 >> 0) & 0xFF;
+    //crc8
+    req[14] = crc_calc_crc8(0, &req[0], 14);
     return transmit(req, sizeof(req));
 }
 

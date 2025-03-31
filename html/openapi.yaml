@@ -30,25 +30,66 @@ paths:
                     description: More verbose name of the app
                   version:
                     type: string
+
   /status:
     get:
-      summary: Get API status
-      tags:
-        - Status
+      summary: Get inverter measurement data
       responses:
-        '200':
-          description: Successful response
+        200:
+          description: Successful response with system status.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  vdc:
+                  ac:
+                    type: object
+                    properties:
+                      u:
+                        type: number
+                        format: float
+                        description: Voltage in V
+                      p:
+                        type: number
+                        format: float
+                        description: Power in W
+                      f:
+                        type: number
+                        format: float
+                        description: Frequency in Hz
+                  dc:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Identifier of the DC source
+                        u:
+                          type: number
+                          format: float
+                          description: Voltage in V
+                        i:
+                          type: number
+                          format: float
+                          description: Current in A
+                        p:
+                          type: number
+                          format: float
+                          description: Power in W
+                        etoday:
+                          type: number
+                          format: float
+                          description: Energy generated today in kWh
+                        etotal:
+                          type: number
+                          format: float
+                          description: Total energy generated in kWh
+                  pwrlimit:
                     type: number
-                  limit:
-                    type: number
-                  status:
-                    type: string
+                    description: Power limit in percentage
+                    example: 100
+
   /power:
     get:
       summary: Get power data
@@ -57,16 +98,17 @@ paths:
       parameters:
         - name: limit
           in: query
-          description: Limit the number of results
+          description: Active power limit, in 0.1% (of intverters maximum)
           required: false
           schema:
             type: integer
       responses:
         '200':
           description: Successful response
+
   /subscribe:
     get:
-      summary: Subscribe to events
+      summary: Subscribe to status update events
       tags:
         - Subscribe
       responses:
@@ -76,3 +118,4 @@ paths:
             text/event-stream:
               schema:
                 type: string
+                description: json dump of the /status data
